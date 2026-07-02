@@ -2,11 +2,19 @@ import telebot
 import ipinfo
 import os
 import re
-from datetime import datetime
 
-# Get tokens from environment variables (for Railway)
-BOT_TOKEN = os.environ.get('BOT_TOKEN', 'YOUR_BOT_TOKEN_HERE')
-IPINFO_TOKEN = os.environ.get('IPINFO_TOKEN', 'YOUR_IPINFO_TOKEN_HERE')
+# Get tokens from environment variables
+BOT_TOKEN = os.environ.get('BOT_TOKEN')
+IPINFO_TOKEN = os.environ.get('IPINFO_TOKEN')
+
+# Check if tokens exist
+if not BOT_TOKEN:
+    print("❌ ERROR: BOT_TOKEN environment variable not set!")
+    exit(1)
+
+if not IPINFO_TOKEN:
+    print("❌ ERROR: IPINFO_TOKEN environment variable not set!")
+    exit(1)
 
 # Initialize bot and IPinfo client
 bot = telebot.TeleBot(BOT_TOKEN)
@@ -29,8 +37,6 @@ Send me an IP address and I'll give you details about it!
 **Examples:**
 /ip 8.8.8.8
 /myip
-
-Made with ❤️
 """
     bot.reply_to(message, welcome_text, parse_mode='Markdown')
 
@@ -38,8 +44,6 @@ Made with ❤️
 @bot.message_handler(commands=['myip'])
 def get_my_ip(message):
     try:
-        # Get the user's IP from the message (Telegram doesn't directly provide it)
-        # We'll use a fallback - get the IP of the request
         details = ipinfo_client.getDetails()
         response = format_ip_info(details.details)
         bot.reply_to(message, response, parse_mode='Markdown')
@@ -50,7 +54,6 @@ def get_my_ip(message):
 @bot.message_handler(commands=['ip'])
 def get_ip_info(message):
     try:
-        # Extract IP from command
         parts = message.text.split()
         if len(parts) < 2:
             bot.reply_to(message, "❌ Please provide an IP address.\nExample: /ip 8.8.8.8")
@@ -58,13 +61,11 @@ def get_ip_info(message):
         
         ip_address = parts[1]
         
-        # Validate IP format (basic check)
         ip_pattern = re.compile(r'^(\d{1,3}\.){3}\d{1,3}$')
         if not ip_pattern.match(ip_address):
             bot.reply_to(message, "❌ Invalid IP address format. Please use IPv4 (e.g., 8.8.8.8)")
             return
         
-        # Get IP info
         details = ipinfo_client.getDetails(ip_address)
         response = format_ip_info(details.details)
         bot.reply_to(message, response, parse_mode='Markdown')
@@ -72,12 +73,10 @@ def get_ip_info(message):
     except Exception as e:
         bot.reply_to(message, f"❌ Error: {str(e)}")
 
-# Handle direct IP messages (user just sends an IP)
+# Handle direct IP messages
 @bot.message_handler(func=lambda message: True)
 def handle_ip_message(message):
     text = message.text.strip()
-    
-    # Check if message looks like an IP
     ip_pattern = re.compile(r'^(\d{1,3}\.){3}\d{1,3}$')
     if ip_pattern.match(text):
         try:
@@ -86,9 +85,6 @@ def handle_ip_message(message):
             bot.reply_to(message, response, parse_mode='Markdown')
         except Exception as e:
             bot.reply_to(message, f"❌ Error: {str(e)}")
-    else:
-        # If not an IP, ignore or send a friendly message
-        pass
 
 # Function to format IP info
 def format_ip_info(data):
@@ -102,9 +98,13 @@ def format_ip_info(data):
     response += f"⏰ **Timezone:** {data.get('timezone', 'N/A')}\n"
     return response
 
-# Start polling (for Railway)
+# Start polling
 if __name__ == "__main__":
-    print("🤖 Bot is starting...")
-    print(f"Bot username: @{bot.get_me().username}")
-    print("✅ Bot is running!")
+    print("🤖 IP Bot is starting...")
+    try:
+        bot_info = bot.get_me()
+        print(f"✅ Bot is running! Username: @{bot_info.username}")
+    except Exception as e:
+        print(f"⚠️ Could not get bot info: {e}")
+        print("Check your BOT_TOKEN.")
     bot.infinity_polling()
