@@ -24,21 +24,23 @@ ipinfo_client = ipinfo.getHandler(IPINFO_TOKEN)
 @bot.message_handler(commands=['start', 'help'])
 def send_welcome(message):
     welcome_text = """
-🌍 **IP Information Bot** 🌍
+🌍 IP Information Bot 🌍
 
 Send me an IP address and I'll give you details about it!
 
-**Commands:**
+Commands:
 /start - Show this message
 /help - Show this message
 /ip <IP> - Get info about a specific IP
 /myip - Get info about your own IP
 
-**Examples:**
+Examples:
 /ip 8.8.8.8
 /myip
+
+Made with ❤️
 """
-    bot.reply_to(message, welcome_text, parse_mode='Markdown')
+    bot.reply_to(message, welcome_text)
 
 # Handle /myip command
 @bot.message_handler(commands=['myip'])
@@ -46,7 +48,7 @@ def get_my_ip(message):
     try:
         details = ipinfo_client.getDetails()
         response = format_ip_info(details.details)
-        bot.reply_to(message, response, parse_mode='Markdown')
+        bot.reply_to(message, response, parse_mode='MarkdownV2')
     except Exception as e:
         bot.reply_to(message, f"❌ Error: {str(e)}")
 
@@ -68,7 +70,7 @@ def get_ip_info(message):
         
         details = ipinfo_client.getDetails(ip_address)
         response = format_ip_info(details.details)
-        bot.reply_to(message, response, parse_mode='Markdown')
+        bot.reply_to(message, response, parse_mode='MarkdownV2')
         
     except Exception as e:
         bot.reply_to(message, f"❌ Error: {str(e)}")
@@ -82,20 +84,42 @@ def handle_ip_message(message):
         try:
             details = ipinfo_client.getDetails(text)
             response = format_ip_info(details.details)
-            bot.reply_to(message, response, parse_mode='Markdown')
+            bot.reply_to(message, response, parse_mode='MarkdownV2')
         except Exception as e:
             bot.reply_to(message, f"❌ Error: {str(e)}")
 
-# Function to format IP info
+# Function to format IP info with proper MarkdownV2 escaping
 def format_ip_info(data):
-    response = "🔍 **IP Information**\n\n"
-    response += f"📌 **IP:** `{data.get('ip', 'N/A')}`\n"
-    response += f"🌍 **Location:** {data.get('city', 'N/A')}, {data.get('region', 'N/A')}, {data.get('country', 'N/A')}\n"
-    response += f"📍 **Coordinates:** {data.get('loc', 'N/A')}\n"
-    response += f"🏢 **ISP:** {data.get('org', 'N/A')}\n"
-    response += f"🌐 **Hostname:** {data.get('hostname', 'N/A')}\n"
-    response += f"📮 **Postal:** {data.get('postal', 'N/A')}\n"
-    response += f"⏰ **Timezone:** {data.get('timezone', 'N/A')}\n"
+    # Helper function to escape special characters for MarkdownV2
+    def escape_markdown(text):
+        if text is None:
+            return "N/A"
+        # Escape special characters: _ * [ ] ( ) ~ ` > # + - = | { } . !
+        special_chars = ['_', '*', '[', ']', '(', ')', '~', '`', '>', '#', '+', '-', '=', '|', '{', '}', '.', '!']
+        for char in special_chars:
+            text = text.replace(char, f'\\{char}')
+        return text
+    
+    ip = escape_markdown(data.get('ip', 'N/A'))
+    city = escape_markdown(data.get('city', 'N/A'))
+    region = escape_markdown(data.get('region', 'N/A'))
+    country = escape_markdown(data.get('country', 'N/A'))
+    loc = escape_markdown(data.get('loc', 'N/A'))
+    org = escape_markdown(data.get('org', 'N/A'))
+    hostname = escape_markdown(data.get('hostname', 'N/A'))
+    postal = escape_markdown(data.get('postal', 'N/A'))
+    timezone = escape_markdown(data.get('timezone', 'N/A'))
+    
+    response = (
+        f"🔍 **IP Information**\n\n"
+        f"📌 **IP:** `{ip}`\n"
+        f"🌍 **Location:** {city}, {region}, {country}\n"
+        f"📍 **Coordinates:** {loc}\n"
+        f"🏢 **ISP:** {org}\n"
+        f"🌐 **Hostname:** {hostname}\n"
+        f"📮 **Postal:** {postal}\n"
+        f"⏰ **Timezone:** {timezone}"
+    )
     return response
 
 # Start polling
